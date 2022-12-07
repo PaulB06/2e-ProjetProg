@@ -27,7 +27,11 @@ let rec type_type = function
   | PTident { id = "bool" } -> Tbool
   | PTident { id = "string" } -> Tstring
   | PTptr ty -> Tptr (type_type ty)
-  | _ -> error dummy_loc ("unknown struct ") (* TODO type structure *)
+  | PTident { id } ->
+    try 
+      Tstruct (Dico.find env_struct id)
+    with Not_found -> error dummy_loc ("unknown struct " ^ id)
+  | _ -> error dummy_loc ("unknown struct ")
 
 let rec eq_type ty1 ty2 = match ty1, ty2 with
   | Tint, Tint | Tbool, Tbool | Tstring, Tstring -> true
@@ -130,11 +134,11 @@ let struct_vide s_name =
     s_fields = Hashtbl.create 11;
     s_size = -1;  (* taille calculee en octets *)
   }
-  
+
 
 (* 1. declare structures *)
 let phase1 = function
-  | PDstruct { ps_name = { id = id; loc = loc }} -> 
+  | PDstruct { ps_name = { id = id; loc = loc }; _ } -> 
     if Dico.mem env_struct id then error loc ("duplicate struct " ^ id);
     Hashtbl.add env_struct id (struct_vide id)
   | PDfunction _ -> ()
@@ -143,15 +147,20 @@ let sizeof = function
   | Tint | Tbool | Tstring | Tptr _ -> 8
   | _ -> (* TODO *) assert false 
 
+let pparam_to_var ({ id = id; loc = loc } , pty ) =
+  let ty = type_type pty in
+  let v = new_var id loc ty in
+  v
+
 (* 2. declare functions and type fields *)
 let phase2 = function
-  | PDfunction { pf_name={id; loc}; pf_params=pl; pf_typ=tyl; } ->
-    if id = "main" then foundmain := true;
+  | PDfunction { pf_name={id; loc}; pf_params=pl; pf_typ=tyl; _ } ->
+    if id = "main" then found_main := true;
     if Dico.mem env_fonc id then error loc ("duplicate function " ^ id);
-    let f = { fn_name = id; fn_params = []; fn_typ = []} in
+    let f = { fn_name = id; fn_params = List.map pparam_to_var pl; fn_typ = List.map type_type tyl; } in
     Dico.add env_fonc id f
      
-  | PDstruct { ps_name = {id}; ps_fields = fl } ->
+  | PDstruct { ps_name = {id; _}; ps_fields = fl } ->
      (* TODO *) () 
 
 (* 3. type check function bodies *)
