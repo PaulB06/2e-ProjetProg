@@ -130,6 +130,7 @@ let struct_vide s_name =
     s_fields = Hashtbl.create 11;
     s_size = -1;  (* taille calculee en octets *)
   }
+  
 
 (* 1. declare structures *)
 let phase1 = function
