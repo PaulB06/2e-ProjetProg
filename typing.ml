@@ -131,7 +131,7 @@ let found_main = ref false
 let struct_vide s_name =
   {
     s_name;
-    s_fields = Hashtbl.create 11;
+    s_fields = Dico.create 11;
     s_size = -1;  (* taille calculee en octets *)
   }
 
@@ -140,10 +140,10 @@ let struct_vide s_name =
 let phase1 = function
   | PDstruct { ps_name = { id = id; loc = loc }; _ } -> 
     if Dico.mem env_struct id then error loc ("duplicate struct " ^ id);
-    Hashtbl.add env_struct id (struct_vide id)
+    Dico.add env_struct id (struct_vide id)
   | PDfunction _ -> ()
 
-let sizeof = function
+let rec sizeof = function
   | Tint | Tbool | Tstring | Tptr _ -> 8
   | _ -> (* TODO *) assert false 
 
@@ -152,7 +152,12 @@ let pparam_to_var ({ id = id; loc = loc } , pty ) =
   let v = new_var id loc ty in
   v
 
-(* 2. declare functions and type fields *)
+let ajout dico field =
+  let {loc = loc ; id =id }, ty = field in
+  if Dico.mem dico id then error loc ("duplicate field " ^ id);
+  Dico.add dico id { f_name = id ; f_typ = type_type ty; f_ofs = 0}
+
+  (* 2. declare functions and type fields *)
 let phase2 = function
   | PDfunction { pf_name={id; loc}; pf_params=pl; pf_typ=tyl; _ } ->
     if id = "main" then found_main := true;
@@ -161,7 +166,9 @@ let phase2 = function
     Dico.add env_fonc id f
      
   | PDstruct { ps_name = {id; _}; ps_fields = fl } ->
-     (* TODO *) () 
+    let { s_name = nom ; s_fields = dictio ; _ } = Dico.find env_struct id in
+    List.iter (ajout dictio) fl;
+        
 
 (* 3. type check function bodies *)
 let decl = function
