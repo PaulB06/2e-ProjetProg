@@ -167,7 +167,7 @@ let phase2 = function
      
   | PDstruct { ps_name = {id; _}; ps_fields = fl } ->
     let { s_name = nom ; s_fields = dictio ; _ } = Dico.find env_struct id in
-    List.iter (ajout dictio) fl;
+    List.iter (ajout dictio) fl
         
 
 (* 3. type check function bodies *)
@@ -178,8 +178,10 @@ let decl = function
     let e, rt = expr Env.empty e in
     TDfunction (f, e)
   | PDstruct {ps_name={id}} ->
-    (* TODO *) let s = { s_name = id; s_fields = Hashtbl.create 5; s_size = 0 } in
-     TDstruct s
+    let s = { s_name = id; s_fields = Hashtbl.create 11; s_size = 0 } in
+    
+    
+    TDstruct s
 
 let file ~debug:b (imp, dl) =
   debug := b;

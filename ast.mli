@@ -34,7 +34,7 @@ and pexpr_desc = (* différents types d'expressions *)
   | PEbinop of binop * pexpr * pexpr
   | PEunop of unop * pexpr
   | PEnil
-  | PEcall of ident * pexpr list
+  | PEcall of ident * pexpr list (* si la string de ident vaut "nex" ou "print", distinguer le cas *)
   | PEident of ident
   | PEdot of pexpr * ident
   | PEassign of pexpr list * pexpr list

@@ -1,54 +1,53 @@
 
 (* arbres issus du typeur *)
 
-type unop = Ast.unop
+type unop = Ast.unop  (* opération unaire *)
 
-type binop = Ast.binop
+type binop = Ast.binop  (* opération binaire *)
 
-type constant = Ast.constant
+type constant = Ast.constant  (* constante *)
 
-type incdec = Ast.incdec
+type incdec = Ast.incdec  (* ++ -- *)
 
-type function_ = {
-    fn_name: string;
-  fn_params: var list;
-     fn_typ: typ list;
+type function_ = {  (* type des fonctions *)
+    fn_name: string; (* nom de la fonction *)
+  fn_params: var list; (* paramètres de la fonction, sous forme de liste de variables *)
+     fn_typ: typ list;  (* types de retour de la fonction *)
 }
 
-and field = {
-         f_name: string;
-          f_typ: typ;
-  mutable f_ofs: int; (* relatif à l'adresse de l'objet *)
+and field = { (* champ d'une structure *)
+         f_name: string; (* nom de la structure *)
+          f_typ: typ;  (* type du champ *)
+  mutable f_ofs: int; (* relatif à l'adresse de l'objet, somme des tailles des champs précédents *) 
 }
 
-and structure = {
-          s_name: string;
-        s_fields: (string, field) Hashtbl.t;
+and structure = { (* type structure *)
+          s_name: string; (* nom de la structure *)
+        s_fields: (string, field) Hashtbl.t;  (* dictionnaire des champs, indexés par leur nom *)
   mutable s_size: int; (* taille calculee en octets *)
 }
 
-and typ =
-  | Tint | Tbool | Tstring
-  | Tstruct of structure
-  | Tptr of typ
+and typ =  (* tout les types possibles *)
+  | Tint | Tbool | Tstring (* types de bases *)
+  | Tstruct of structure (* type structure *)
+  | Tptr of typ (* pointeur vers un type, pour faire des tableaux *)
   | Twild (* type wildcard, tout type *)
   | Tmany of typ list (* 0 pour type retour instructions et >=2 pour retour functions *)
-  (* TODO autres types pour l'analyse semantique, si besoin *)
 
-and var = {
-          v_name: string;
-            v_id: int;  (* unique *)
-           v_loc: Ast.location;
-           v_typ: typ;
+and var = { (* type des variables *)
+          v_name: string; (* nom de la variable *)
+            v_id: int;  (* identifiant unique *)
+           v_loc: Ast.location; (* location, on s'en fout *)
+           v_typ: typ; (* type de la variable *)
          v_depth: int;  (* index de portee *)
-  mutable v_used: bool;
+  mutable v_used: bool;  (* utilistaion de la variable ou non *) 
   mutable v_addr: int;  (* adresse relative au pointer de frame (rbp) *)
-  (* TODO autres informations pour la production de code, si besoin *)
 }
 
-and expr =
-  { expr_desc: expr_desc;
-    expr_typ : typ; }
+and expr = (* type des expressions *)
+  { expr_desc: expr_desc; (* description de l'expression *)
+    expr_typ : typ; (* type de l'expression *)
+    }
 
 and expr_desc =
   | TEskip
@@ -56,7 +55,7 @@ and expr_desc =
   | TEbinop of binop * expr * expr
   | TEunop of unop * expr
   | TEnil
-  | TEnew of typ
+  | TEnew of typ (* cas particulier de PEcall *)
   | TEcall of function_ * expr list
   | TEident of var
   | TEdot of expr * field
@@ -66,11 +65,11 @@ and expr_desc =
   | TEreturn of expr list
   | TEblock of expr list
   | TEfor of expr * expr
-  | TEprint of expr list
+  | TEprint of expr list (* cas particulier de PEcall *)
   | TEincdec of expr * incdec
 
-type tdecl =
+type tdecl = (* declaration des fonctions et des struct *)
   | TDfunction of function_ * expr
   | TDstruct of structure
 
-type tfile = tdecl list
+type tfile = tdecl list (* liste des déclarations *)
