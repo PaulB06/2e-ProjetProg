@@ -35,10 +35,12 @@ let rec type_type = function
 
 let rec eq_type ty1 ty2 = match ty1, ty2 with
   | Tint, Tint | Tbool, Tbool | Tstring, Tstring -> true
-  | Tstruct s1, Tstruct s2 -> s1 == s2
+  | Tstruct { s_name = id1 ; _ }, Tstruct {s_name = id2 ; _ } -> id1 == id2
   | Tptr ty1, Tptr ty2 -> eq_type ty1 ty2
+  | Twild, _ | _,Twild -> true  (* pas 100% sur que l'on doive traiter les Twild comme ça *)
+  | Tmany [], Tmany [] -> true
+  | Tmany (t1::q1), Tmany (t2::q2) -> (eq_type t1 t2) && (eq_type (Tmany(q1)) (Tmany(q2)))
   | _ -> false
-    (* TODO autres types *)
 
 let fmt_used = ref false
 let fmt_imported = ref false
@@ -81,7 +83,11 @@ let rec expr env e =
  let e, ty, rt = expr_desc env e.pexpr_loc e.pexpr_desc in
   { expr_desc = e; expr_typ = ty }, rt
 
-and expr_desc env loc = function
+and expr_desc env loc = function 
+(* renvoie le triplet:                                     
+description de l'expression, en utilisant le type du tast,
+typage de l'expression, en utilisant les types du tast possiblement tvoid,
+booléen valant true ssi il y a un retour dans l'expression   *)
   | PEskip ->
      TEskip, tvoid, false
   | PEconstant c ->
@@ -148,9 +154,9 @@ let rec sizeof = function
   | Tstruct { s_size = n ; _ } -> n
   | Tmany [] -> 0
   | Tmany (t::q) -> sizeof t + sizeof(Tmany q)
-  | _ -> (* TODO *) assert false 
+  | _ -> assert false 
 
-let pparam_to_var ({ id = id; loc = loc } , pty ) =
+let pparam_to_var ({ id = id; loc = loc } , pty ) = (* pas 100% sur de cette fonction *)
   let ty = type_type pty in
   let v = new_var id loc ty in
   v
@@ -172,6 +178,15 @@ let phase2 = function
     let { s_name = nom ; s_fields = dictio ; _ } = Dico.find env_struct id in
     List.iter (ajout dictio) fl
         
+let addressing_fields dico l_f =
+  let rec aux lst ad =
+    match lst with
+    | [] -> ad
+    | ({ id = name ; _}, _ )::q -> let field = Dico.find dico name in
+                                    field.f_ofs <- ad;
+                                    aux q (ad + sizeof field.f_typ);
+  in
+  aux l_f 0
 
     (* 3. type check function bodies *)
 let decl = function
@@ -180,16 +195,16 @@ let decl = function
     let f = { fn_name = id; fn_params = []; fn_typ = []} in
     let e, rt = expr Env.empty e in
     TDfunction (f, e)
-  | PDstruct {ps_name={id} ; ps_fields} ->
-    let s = { s_name = id; s_fields = Dico.create 11; s_size = 0 } in
-    let address = ref 0 in
-
-    (* TODO *)
+  
+  | PDstruct {ps_name={id} ; ps_fields = l_fields } ->
+    let s = Dico.find env_struct id in
+    let size = addressing_fields s.s_fields l_fields in
+    s.s_size <- size;
     TDstruct s
 
 let file ~debug:b (imp, dl) =
   debug := b;
-  (* fmt_imported := imp; *)
+  fmt_imported := imp;
   List.iter phase1 dl;
   List.iter phase2 dl;
   if not !found_main then error dummy_loc "missing method main";
