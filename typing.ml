@@ -145,6 +145,9 @@ let phase1 = function
 
 let rec sizeof = function
   | Tint | Tbool | Tstring | Tptr _ -> 8
+  | Tstruct { s_size = n ; _ } -> n
+  | Tmany [] -> 0
+  | Tmany (t::q) -> sizeof t + sizeof(Tmany q)
   | _ -> (* TODO *) assert false 
 
 let pparam_to_var ({ id = id; loc = loc } , pty ) =
@@ -170,17 +173,18 @@ let phase2 = function
     List.iter (ajout dictio) fl
         
 
-(* 3. type check function bodies *)
+    (* 3. type check function bodies *)
 let decl = function
   | PDfunction { pf_name={id; loc}; pf_body = e; pf_typ=tyl } ->
     (* TODO check name and type *) 
     let f = { fn_name = id; fn_params = []; fn_typ = []} in
     let e, rt = expr Env.empty e in
     TDfunction (f, e)
-  | PDstruct {ps_name={id}} ->
-    let s = { s_name = id; s_fields = Hashtbl.create 11; s_size = 0 } in
-    
-    
+  | PDstruct {ps_name={id} ; ps_fields} ->
+    let s = { s_name = id; s_fields = Dico.create 11; s_size = 0 } in
+    let address = ref 0 in
+
+    (* TODO *)
     TDstruct s
 
 let file ~debug:b (imp, dl) =
