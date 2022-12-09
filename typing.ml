@@ -168,14 +168,27 @@ and expr_desc env loc = function
       (TEnew ty, Tptr ty, false)
   | PEcall ({ id = "new" }, _) -> error loc "new expects a type"
   | PEcall (id, el) -> (* TODO *) assert false
-  | PEfor (e, b) -> 
-    let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e in
-    let expr1 = { expr_desc = exp1; expr_typ = t1 } in
-    let { expr_desc = exp2; expr_typ = t2 }, r2 = expr env b in
-    let expr2 = { expr_desc = exp2; expr_typ = t2 } in
-    if t1 <> Tbool then error loc ("La condition de ce for n'est pas un bool!");
-    TEfor(expr1,expr2),tvoid,false
-  | PEif (e1, e2, e3) -> (* TODO *) assert false
+  | PEfor (e, b) ->
+      let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e in
+      let expr1 = { expr_desc = exp1; expr_typ = t1 } in
+      let { expr_desc = exp2; expr_typ = t2 }, r2 = expr env b in
+      let expr2 = { expr_desc = exp2; expr_typ = t2 } in
+      if t1 <> Tbool then error loc "La condition de ce for n'est pas un bool!";
+      if t2 <> tvoid then error loc "Le bloc de ce for n'est pas bien typé.";
+      (TEfor (expr1, expr2), tvoid, false)
+  | PEif (e1, e2, e3) ->
+      let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e1 in
+      let expr1 = { expr_desc = exp1; expr_typ = t1 } in
+      let { expr_desc = exp2; expr_typ = t2 }, r2 = expr env e2 in
+      let expr2 = { expr_desc = exp2; expr_typ = t2 } in
+      let { expr_desc = exp3; expr_typ = t3 }, r3 = expr env e3 in
+      let expr3 = { expr_desc = exp3; expr_typ = t3 } in
+      if t1 <> Tbool then error loc "La condition de ce if n'est pas un bool.";
+      if t2 <> tvoid then
+        error loc "Le premier bloc de ce if n'est pas bien typé.";
+      if t3 <> tvoid then
+        error loc "Le second bloc de ce if n'est pas bien typé.";
+      (TEif (expr1, expr2, expr3), tvoid, r1 && r2)
   | PEnil -> (* TODO *) assert false
   | PEident { id } -> (
       (* TODO *)
