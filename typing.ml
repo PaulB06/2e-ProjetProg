@@ -126,17 +126,45 @@ and expr_desc env loc = function
           if t1 <> Tbool then
             error loc "Cette opération est résevée aux booléens.";
           (TEbinop (op, expr1, expr2), Tbool, false))
-  | PEunop (Uamp, e1) -> (* TODO *) assert false
-  | PEunop (((Uneg | Unot | Ustar) as op), e1) -> (* TODO *) assert false
-  | PEcall ({ id = "fmt.Print" }, el) -> (* TODO *) (TEprint [], tvoid, false)
-  | PEcall ({ id = "new" }, [ { pexpr_desc = PEident { id } } ]) ->
-      let ty =
-        match id with
-        | "int" -> Tint
-        | "bool" -> Tbool
-        | "string" -> Tstring
-        | _ -> (* TODO *) error loc ("no such type " ^ id)
+  | PEunop (Uamp, e) -> (* TODO *) assert false
+  | PEunop (((Uneg | Unot | Ustar) as op), e) -> (
+      match op with
+      | Uneg ->
+          let { expr_desc = exp; expr_typ = t }, r = expr env e in
+          let expr = { expr_desc = exp; expr_typ = t } in
+          if t <> Tint then
+            error loc "On ne peut appliquer moins à autre chose qu'un int";
+          (TEunop (Uneg, expr), Tint, false)
+      | Unot ->
+          let { expr_desc = exp; expr_typ = t }, r = expr env e in
+          let expr = { expr_desc = exp; expr_typ = t } in
+          if t <> Tbool then
+            error loc "On ne peut appliquer not à autre chose qu'un bool";
+          (TEunop (Uneg, expr), Tbool, false)
+      | _ -> assert false)
+  | PEcall ({ id = "fmt.Print" }, e_l) ->
+      fmt_used := true;
+      let rec list_to_print e_l prem =
+        match e_l with
+        | [] -> []
+        | [ t ] when prem ->
+            let exp, _ = expr env t in
+            exp :: []
+        | t :: q -> (
+            let exp, _ = expr env t in
+            match exp.expr_typ with
+            | Tmany (a :: b :: c) ->
+                error loc
+                  "Il est impossible de print le résultat d'une fonction qui \
+                   renvoie plusieyrs types en parallèle d'autres arguments à \
+                   print."
+            | _ -> exp :: list_to_print q false)
       in
+
+      let expr_l = list_to_print e_l true in
+      (TEprint expr_l, tvoid, false)
+  | PEcall ({ id = "new" }, [ { pexpr_desc = PEident { id } } ]) ->
+      let ty = type_type (PTident { id; loc }) in
       (TEnew ty, Tptr ty, false)
   | PEcall ({ id = "new" }, _) -> error loc "new expects a type"
   | PEcall (id, el) -> (* TODO *) assert false
