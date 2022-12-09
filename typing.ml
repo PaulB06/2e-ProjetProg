@@ -189,7 +189,7 @@ and expr_desc env loc = function
       if t3 <> tvoid then
         error loc "Le second bloc de ce if n'est pas bien typé.";
       (TEif (expr1, expr2, expr3), tvoid, r1 && r2)
-  | PEnil -> TEnil,tvoid,false
+  | PEnil -> (TEnil, tvoid, false)
   | PEident { id } -> (
       (* TODO *)
       try
@@ -200,11 +200,12 @@ and expr_desc env loc = function
   | PEassign (lvl, el) -> (* TODO *) (TEassign ([], []), tvoid, false)
   | PEreturn el -> (* TODO *) (TEreturn [], tvoid, true)
   | PEblock el -> (* TODO *) (TEblock [], tvoid, false)
-  | PEincdec (e, op) -> 
-    let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e in
-    let expr1 = { expr_desc = exp1; expr_typ = t1 } in
-    if t1 <> Tint then error loc ("On ne peut incréménter ou décrémenter des non int.");
-    TEincdec(expr1,op),Tint,false
+  | PEincdec (e, op) ->
+      let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e in
+      let expr1 = { expr_desc = exp1; expr_typ = t1 } in
+      if t1 <> Tint then
+        error loc "On ne peut incréménter ou décrémenter des non int.";
+      (TEincdec (expr1, op), Tint, false)
   | PEvars _ -> (* TODO *) assert false
 
 let found_main = ref false
