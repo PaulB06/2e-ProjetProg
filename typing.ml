@@ -168,7 +168,13 @@ and expr_desc env loc = function
       (TEnew ty, Tptr ty, false)
   | PEcall ({ id = "new" }, _) -> error loc "new expects a type"
   | PEcall (id, el) -> (* TODO *) assert false
-  | PEfor (e, b) -> (* TODO *) assert false
+  | PEfor (e, b) -> 
+    let { expr_desc = exp1; expr_typ = t1 }, r1 = expr env e in
+    let expr1 = { expr_desc = exp1; expr_typ = t1 } in
+    let { expr_desc = exp2; expr_typ = t2 }, r2 = expr env b in
+    let expr2 = { expr_desc = exp2; expr_typ = t2 } in
+    if t1 <> Tbool then error loc ("La condition de ce for n'est pas un bool!");
+    TEfor(expr1,expr2),tvoid,false
   | PEif (e1, e2, e3) -> (* TODO *) assert false
   | PEnil -> (* TODO *) assert false
   | PEident { id } -> (
